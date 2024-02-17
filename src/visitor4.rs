@@ -18,69 +18,69 @@ pub enum WalkCont {
 
 pub trait Visitor<S: Strategy, B> {
     fn visit_op(&mut self, ctx: &Context, op: Ptr<Operation>) -> WalkResult<B> {
-        S::walk_regions(self, ctx, op)
+        S::walk_op(self, ctx, op)
     }
 
     fn visit_region(&mut self, ctx: &Context, region: Ptr<Region>) -> WalkResult<B> {
-        S::walk_blocks(self, ctx, region)
+        S::walk_region(self, ctx, region)
     }
 
     fn visit_block(&mut self, ctx: &Context, block: Ptr<BasicBlock>) -> WalkResult<B> {
-        S::walk_ops(self, ctx, block)
+        S::walk_block(self, ctx, block)
     }
 }
 
 pub trait Strategy {
-    fn walk_regions<A, B>(a: &mut A, ctx: &Context, op: Ptr<Operation>) -> WalkResult<B>
+    fn walk_op<V, B>(a: &mut V, ctx: &Context, op: Ptr<Operation>) -> WalkResult<B>
     where
-        A: Visitor<Self, B> + ?Sized,
+        V: Visitor<Self, B> + ?Sized,
         Self: Sized;
 
-    fn walk_blocks<A, B>(a: &mut A, ctx: &Context, region: Ptr<Region>) -> WalkResult<B>
+    fn walk_region<V, B>(a: &mut V, ctx: &Context, region: Ptr<Region>) -> WalkResult<B>
     where
-        A: Visitor<Self, B> + ?Sized,
+        V: Visitor<Self, B> + ?Sized,
         Self: Sized;
 
-    fn walk_ops<A, B>(a: &mut A, ctx: &Context, block: Ptr<BasicBlock>) -> WalkResult<B>
+    fn walk_block<V, B>(a: &mut V, ctx: &Context, block: Ptr<BasicBlock>) -> WalkResult<B>
     where
-        A: Visitor<Self, B> + ?Sized,
+        V: Visitor<Self, B> + ?Sized,
         Self: Sized;
 }
 
 pub trait VisitorMut<B> {
     fn visit_op_mut(&mut self, ctx: &mut Context, op: Ptr<Operation>) -> WalkResult<B> {
-        Forward::walk_regions_mut(self, ctx, op)
+        Forward::walk_op_mut(self, ctx, op)
     }
 
     fn visit_region_mut(&mut self, ctx: &mut Context, region: Ptr<Region>) -> WalkResult<B> {
-        Forward::walk_blocks_mut(self, ctx, region)
+        Forward::walk_region_mut(self, ctx, region)
     }
 
     fn visit_block_mut(&mut self, ctx: &mut Context, block: Ptr<BasicBlock>) -> WalkResult<B> {
-        Forward::walk_ops_mut(self, ctx, block)
+        Forward::walk_block_mut(self, ctx, block)
     }
 }
 
 pub trait StrategyMut {
-    fn walk_regions_mut<A, B>(a: &mut A, ctx: &mut Context, op: Ptr<Operation>) -> WalkResult<B>
+    fn walk_op_mut<V, B>(a: &mut V, ctx: &mut Context, op: Ptr<Operation>) -> WalkResult<B>
     where
-        A: VisitorMut<B> + ?Sized;
+        V: VisitorMut<B> + ?Sized;
 
-    fn walk_blocks_mut<A, B>(a: &mut A, ctx: &mut Context, region: Ptr<Region>) -> WalkResult<B>
+    fn walk_region_mut<V, B>(a: &mut V, ctx: &mut Context, region: Ptr<Region>) -> WalkResult<B>
     where
-        A: VisitorMut<B> + ?Sized;
+        V: VisitorMut<B> + ?Sized;
 
-    fn walk_ops_mut<A, B>(a: &mut A, ctx: &mut Context, block: Ptr<BasicBlock>) -> WalkResult<B>
+    fn walk_block_mut<V, B>(a: &mut V, ctx: &mut Context, block: Ptr<BasicBlock>) -> WalkResult<B>
     where
-        A: VisitorMut<B> + ?Sized;
+        V: VisitorMut<B> + ?Sized;
 }
 
 struct Forward;
 
 impl Strategy for Forward {
-    fn walk_regions<A, B>(a: &mut A, ctx: &Context, op: Ptr<Operation>) -> WalkResult<B>
+    fn walk_op<V, B>(a: &mut V, ctx: &Context, op: Ptr<Operation>) -> WalkResult<B>
     where
-        A: Visitor<Self, B> + ?Sized,
+        V: Visitor<Self, B> + ?Sized,
     {
         for ptr in op.deref(ctx).regions().iter().cloned() {
             a.visit_region(ctx, ptr)?;
@@ -88,9 +88,9 @@ impl Strategy for Forward {
         WalkResult::Continue(WalkCont::Advance)
     }
 
-    fn walk_blocks<A, B>(a: &mut A, ctx: &Context, region: Ptr<Region>) -> WalkResult<B>
+    fn walk_region<V, B>(a: &mut V, ctx: &Context, region: Ptr<Region>) -> WalkResult<B>
     where
-        A: Visitor<Self, B> + ?Sized,
+        V: Visitor<Self, B> + ?Sized,
     {
         for ptr in region.deref(ctx).iter(ctx) {
             a.visit_block(ctx, ptr)?;
@@ -98,9 +98,9 @@ impl Strategy for Forward {
         WalkResult::Continue(WalkCont::Advance)
     }
 
-    fn walk_ops<A, B>(a: &mut A, ctx: &Context, block: Ptr<BasicBlock>) -> WalkResult<B>
+    fn walk_block<V, B>(a: &mut V, ctx: &Context, block: Ptr<BasicBlock>) -> WalkResult<B>
     where
-        A: Visitor<Self, B> + ?Sized,
+        V: Visitor<Self, B> + ?Sized,
     {
         for ptr in block.deref(ctx).iter(ctx) {
             a.visit_op(ctx, ptr)?;
@@ -110,9 +110,9 @@ impl Strategy for Forward {
 }
 
 impl StrategyMut for Forward {
-    fn walk_regions_mut<A, B>(a: &mut A, ctx: &mut Context, op: Ptr<Operation>) -> WalkResult<B>
+    fn walk_op_mut<V, B>(a: &mut V, ctx: &mut Context, op: Ptr<Operation>) -> WalkResult<B>
     where
-        A: VisitorMut<B> + ?Sized,
+        V: VisitorMut<B> + ?Sized,
     {
         let iter = {
             let op = op.deref(ctx);
@@ -124,9 +124,9 @@ impl StrategyMut for Forward {
         WalkResult::Continue(WalkCont::Advance)
     }
 
-    fn walk_blocks_mut<A, B>(a: &mut A, ctx: &mut Context, region: Ptr<Region>) -> WalkResult<B>
+    fn walk_region_mut<V, B>(a: &mut V, ctx: &mut Context, region: Ptr<Region>) -> WalkResult<B>
     where
-        A: VisitorMut<B> + ?Sized,
+        V: VisitorMut<B> + ?Sized,
     {
         let iter = {
             let region: &Region = &region.deref(ctx);
@@ -138,9 +138,9 @@ impl StrategyMut for Forward {
         WalkResult::Continue(WalkCont::Advance)
     }
 
-    fn walk_ops_mut<A, B>(a: &mut A, ctx: &mut Context, block: Ptr<BasicBlock>) -> WalkResult<B>
+    fn walk_block_mut<V, B>(a: &mut V, ctx: &mut Context, block: Ptr<BasicBlock>) -> WalkResult<B>
     where
-        A: VisitorMut<B> + ?Sized,
+        V: VisitorMut<B> + ?Sized,
     {
         let iter = {
             let block: &BasicBlock = &block.deref(ctx);
@@ -156,9 +156,9 @@ impl StrategyMut for Forward {
 struct Reverse;
 
 impl Strategy for Reverse {
-    fn walk_regions<A, B>(a: &mut A, ctx: &Context, op: Ptr<Operation>) -> WalkResult<B>
+    fn walk_op<V, B>(a: &mut V, ctx: &Context, op: Ptr<Operation>) -> WalkResult<B>
     where
-        A: Visitor<Self, B> + ?Sized,
+        V: Visitor<Self, B> + ?Sized,
     {
         eprintln!("walk_regions");
         for ptr in op.deref(ctx).regions().iter().cloned().rev() {
@@ -167,9 +167,9 @@ impl Strategy for Reverse {
         WalkResult::Continue(WalkCont::Advance)
     }
 
-    fn walk_blocks<A, B>(a: &mut A, ctx: &Context, region: Ptr<Region>) -> WalkResult<B>
+    fn walk_region<V, B>(a: &mut V, ctx: &Context, region: Ptr<Region>) -> WalkResult<B>
     where
-        A: Visitor<Self, B> + ?Sized,
+        V: Visitor<Self, B> + ?Sized,
     {
         eprintln!("walk_blocks");
         for ptr in region.deref(ctx).iter(ctx).rev() {
@@ -178,9 +178,9 @@ impl Strategy for Reverse {
         WalkResult::Continue(WalkCont::Advance)
     }
 
-    fn walk_ops<A, B>(a: &mut A, ctx: &Context, block: Ptr<BasicBlock>) -> WalkResult<B>
+    fn walk_block<V, B>(a: &mut V, ctx: &Context, block: Ptr<BasicBlock>) -> WalkResult<B>
     where
-        A: Visitor<Self, B> + ?Sized,
+        V: Visitor<Self, B> + ?Sized,
     {
         eprintln!("walk_ops");
         for ptr in block.deref(ctx).iter(ctx).rev() {
@@ -193,9 +193,9 @@ impl Strategy for Reverse {
 }
 
 impl StrategyMut for Reverse {
-    fn walk_regions_mut<A, B>(a: &mut A, ctx: &mut Context, op: Ptr<Operation>) -> WalkResult<B>
+    fn walk_op_mut<V, B>(a: &mut V, ctx: &mut Context, op: Ptr<Operation>) -> WalkResult<B>
     where
-        A: VisitorMut<B> + ?Sized,
+        V: VisitorMut<B> + ?Sized,
     {
         let regions = {
             let op = op.deref(ctx);
@@ -207,9 +207,9 @@ impl StrategyMut for Reverse {
         WalkResult::Continue(WalkCont::Advance)
     }
 
-    fn walk_blocks_mut<A, B>(a: &mut A, ctx: &mut Context, region: Ptr<Region>) -> WalkResult<B>
+    fn walk_region_mut<V, B>(a: &mut V, ctx: &mut Context, region: Ptr<Region>) -> WalkResult<B>
     where
-        A: VisitorMut<B> + ?Sized,
+        V: VisitorMut<B> + ?Sized,
     {
         let blocks = {
             let region: &Region = &region.deref(ctx);
@@ -221,9 +221,9 @@ impl StrategyMut for Reverse {
         WalkResult::Continue(WalkCont::Advance)
     }
 
-    fn walk_ops_mut<A, B>(a: &mut A, ctx: &mut Context, block: Ptr<BasicBlock>) -> WalkResult<B>
+    fn walk_block_mut<V, B>(a: &mut V, ctx: &mut Context, block: Ptr<BasicBlock>) -> WalkResult<B>
     where
-        A: VisitorMut<B> + ?Sized,
+        V: VisitorMut<B> + ?Sized,
     {
         let ops = {
             let block: &BasicBlock = &block.deref(ctx);
@@ -312,7 +312,7 @@ where
 {
     fn visit_op(&mut self, ctx: &Context, op: Ptr<Operation>) -> WalkResult<B> {
         if (self.0)(ctx, op)? == WalkCont::Advance {
-            S::walk_regions(self, ctx, op)?;
+            S::walk_op(self, ctx, op)?;
         }
         WalkResult::Continue(WalkCont::Advance)
     }
@@ -324,7 +324,7 @@ where
 {
     fn visit_region(&mut self, ctx: &Context, r: Ptr<Region>) -> WalkResult<B> {
         if (self.0)(ctx, r)? == WalkCont::Advance {
-            S::walk_blocks(self, ctx, r)?;
+            S::walk_region(self, ctx, r)?;
         }
         WalkResult::Continue(WalkCont::Advance)
     }
@@ -336,7 +336,7 @@ where
 {
     fn visit_block(&mut self, ctx: &Context, r: Ptr<BasicBlock>) -> WalkResult<B> {
         if (self.0)(ctx, r)? == WalkCont::Advance {
-            S::walk_ops(self, ctx, r)?;
+            S::walk_block(self, ctx, r)?;
         }
         WalkResult::Continue(WalkCont::Advance)
     }
@@ -347,7 +347,7 @@ where
     F: FnMut(&Context, Ptr<Operation>) -> WalkResult<B>,
 {
     fn visit_op(&mut self, ctx: &Context, op: Ptr<Operation>) -> WalkResult<B> {
-        S::walk_regions(self, ctx, op)?;
+        S::walk_op(self, ctx, op)?;
         (self.0)(ctx, op)
     }
 }
@@ -357,7 +357,7 @@ where
     F: FnMut(&Context, Ptr<Region>) -> WalkResult<B>,
 {
     fn visit_region(&mut self, ctx: &Context, op: Ptr<Region>) -> WalkResult<B> {
-        S::walk_blocks(self, ctx, op)?;
+        S::walk_region(self, ctx, op)?;
         (self.0)(ctx, op)
     }
 }
@@ -367,7 +367,7 @@ where
     F: FnMut(&Context, Ptr<BasicBlock>) -> WalkResult<B>,
 {
     fn visit_block(&mut self, ctx: &Context, op: Ptr<BasicBlock>) -> WalkResult<B> {
-        S::walk_ops(self, ctx, op)?;
+        S::walk_block(self, ctx, op)?;
         (self.0)(ctx, op)
     }
 }
@@ -456,8 +456,8 @@ mod tests {
         let mut opids: Vec<String> = vec![];
 
         eprintln!("walk:");
-        let res: WalkResult<()> =
-            walk_op::<_, PostOrder, Reverse, _>(module_op.get_operation(), &ctx, |ctx, op| {
+        let res =
+            walk_op::<(), PostOrder, Reverse, _>(module_op.get_operation(), &ctx, |ctx, op| {
                 opids.push(op.deref(ctx).get_opid().to_string());
                 WalkResult::Continue(WalkCont::Advance)
             });
