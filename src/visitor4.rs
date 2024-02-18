@@ -372,6 +372,41 @@ where
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum VisitOrder {
+    PreOrder,
+    PostOrder,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Direction {
+    Forward,
+    Reverse,
+}
+
+pub fn walk_op_with_enums<B>(
+    order: VisitOrder,
+    direction: Direction,
+    root: Ptr<Operation>,
+    ctx: &Context,
+    callback: impl FnMut(&Context, Ptr<Operation>) -> WalkResult<B>,
+) -> WalkResult<B> {
+    match (order, direction) {
+        (VisitOrder::PreOrder, Direction::Forward) => {
+            walk_op::<B, PreOrder, Forward, _>(root, ctx, callback)
+        }
+        (VisitOrder::PreOrder, Direction::Reverse) => {
+            walk_op::<B, PreOrder, Reverse, _>(root, ctx, callback)
+        }
+        (VisitOrder::PostOrder, Direction::Forward) => {
+            walk_op::<B, PostOrder, Forward, _>(root, ctx, callback)
+        }
+        (VisitOrder::PostOrder, Direction::Reverse) => {
+            walk_op::<B, PostOrder, Reverse, _>(root, ctx, callback)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use apint::ApInt;
@@ -430,12 +465,21 @@ mod tests {
         let module_op = create_mod_op(&mut ctx);
         let mut opids: Vec<String> = vec![];
 
-        eprintln!("walk:");
-        let res =
-            walk_op::<(), PreOrder, Forward, _>(module_op.get_operation(), &ctx, |ctx, op| {
+        //let res =
+        //    walk_op::<(), PreOrder, Forward, _>(module_op.get_operation(), &ctx, |ctx, op| {
+        //        opids.push(op.deref(ctx).get_opid().to_string());
+        //        WalkResult::Continue(WalkCont::Advance)
+        //    });
+        let res = walk_op_with_enums::<()>(
+            VisitOrder::PreOrder,
+            Direction::Forward,
+            module_op.get_operation(),
+            &ctx,
+            |ctx, op| {
                 opids.push(op.deref(ctx).get_opid().to_string());
                 WalkResult::Continue(WalkCont::Advance)
-            });
+            },
+        );
         if res.is_break() {
             panic!("unexpected break");
         }

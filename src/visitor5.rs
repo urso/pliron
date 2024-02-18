@@ -106,24 +106,6 @@ pub enum Direction {
     Reverse,
 }
 
-struct Callback<IR, F> {
-    f: F,
-    order: Order,
-    direction: Direction,
-    marker: PhantomData<IR>,
-}
-
-impl<IR, F> Callback<IR, F> {
-    pub fn new(f: F, order: Order, direction: Direction) -> Self {
-        Self {
-            f,
-            order,
-            direction,
-            marker: PhantomData,
-        }
-    }
-}
-
 pub fn walk_ops<B>(
     order: Order,
     direction: Direction,
@@ -159,6 +141,24 @@ pub fn walk_blocks<B>(
     cb.visit_op(ctx, root)
 }
 */
+
+struct Callback<IR, F> {
+    f: F,
+    order: Order,
+    direction: Direction,
+    marker: PhantomData<IR>,
+}
+
+impl<IR, F> Callback<IR, F> {
+    pub fn new(f: F, order: Order, direction: Direction) -> Self {
+        Self {
+            f,
+            order,
+            direction,
+            marker: PhantomData,
+        }
+    }
+}
 
 impl<B, F> Visitor<B> for Callback<Operation, F>
 where
